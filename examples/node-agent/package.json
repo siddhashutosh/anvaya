@@ -1,0 +1,13 @@
+{
+  "name": "@anvaya/example-node-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A fake RAG + agent app instrumented with @anvaya/sdk",
+  "type": "module",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@anvaya/sdk": "1.0.0"
+  }
+}

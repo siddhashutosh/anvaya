@@ -1,0 +1,26 @@
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+
+# SQLite store
+*.db
+*.db-shm
+*.db-wal
+data/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# editors / os
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# vite
+packages/ui/dist/
+.vite/

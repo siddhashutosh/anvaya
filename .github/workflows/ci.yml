@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# A queued run for the same ref is redundant once a newer commit lands.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: lint · typecheck · build · test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22.x is the floor for the built-in node:sqlite driver; 24.x is the
+        # development target.
+        node-version: ['22.x', '24.x']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # Libraries must build before typecheck: workspace packages resolve each
+      # other through their compiled dist output.
+      - name: Build
+        run: npm run build
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Smoke — migrate and seed on a clean database
+        run: |
+          npm run migrate
+          npm run seed -- --traces 40
+
+      - name: Smoke — server starts and reports healthy
+        run: |
+          npm start &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:4319/health > /dev/null; then break; fi
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:4319/health | tee /dev/stderr | grep -q '"status":"ok"'
+          curl -sf http://127.0.0.1:4319/v1/taxonomy | grep -q 'AGT-003'
+          kill $SERVER_PID

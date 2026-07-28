@@ -1,0 +1,10 @@
+# Normalise line endings in the repository; check out native.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.db binary
+
+# Keep generated lockfile diffs out of review noise.
+package-lock.json linguist-generated=true merge=binary

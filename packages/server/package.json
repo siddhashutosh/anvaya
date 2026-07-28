@@ -1,0 +1,33 @@
+{
+  "name": "@anvaya/server",
+  "version": "1.0.0",
+  "description": "Anvaya collector and analysis server — ingest, detect, attribute, store, serve",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "anvaya": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "concurrently -n tsc,srv -c gray,cyan \"tsc -p tsconfig.json --watch --preserveWatchOutput\" \"node --watch dist/cli.js serve\"",
+    "start": "node dist/cli.js serve",
+    "migrate": "node dist/cli.js migrate",
+    "seed": "node dist/cli.js seed"
+  },
+  "dependencies": {
+    "@anvaya/core": "1.0.0",
+    "@fastify/cors": "^10.0.1",
+    "fastify": "^5.2.0",
+    "zod": "^3.24.1"
+  }
+}

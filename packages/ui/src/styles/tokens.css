@@ -1,0 +1,92 @@
+/*
+ * Design tokens.
+ *
+ * Chart colours follow the validated reference palette. Severity uses the STATUS
+ * palette rather than categorical slots, because severity is a state, not an
+ * identity — and status colours are always paired with a label so meaning is
+ * never carried by colour alone.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* surfaces & ink */
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --hover: rgba(11, 11, 11, 0.04);
+
+  /* categorical (validated: adjacent CVD ΔE 23.8, normal 31.6, both ≥3:1) */
+  --series-1: #2a78d6;
+
+  /* status — fixed, never themed */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+  --success-text: #006300;
+
+  /* severity → status mapping */
+  --sev-critical: var(--status-critical);
+  --sev-high: var(--status-serious);
+  --sev-medium: var(--status-warning);
+  --sev-low: #898781;
+  --sev-info: #c3c2b7;
+
+  /* sequential blue ramp (ordinal-safe steps only) */
+  --seq-250: #86b6ef;
+  --seq-450: #2a78d6;
+  --seq-600: #184f95;
+
+  --radius: 6px;
+  --radius-lg: 10px;
+  --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --gridline: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+    --hover: rgba(255, 255, 255, 0.05);
+    --series-1: #3987e5;
+    --success-text: #0ca30c;
+    --sev-low: #898781;
+    --sev-info: #52514e;
+    --seq-250: #184f95;
+    --seq-450: #3987e5;
+    --seq-600: #86b6ef;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --page: #0d0d0d;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --gridline: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+  --hover: rgba(255, 255, 255, 0.05);
+  --series-1: #3987e5;
+  --success-text: #0ca30c;
+  --sev-low: #898781;
+  --sev-info: #52514e;
+  --seq-250: #184f95;
+  --seq-450: #3987e5;
+  --seq-600: #86b6ef;
+}

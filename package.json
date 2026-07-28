@@ -1,0 +1,43 @@
+{
+  "name": "anvaya",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI failure observability — detect, classify, and attribute failures in AI products",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/core",
+    "packages/sdk",
+    "packages/server",
+    "packages/ui",
+    "examples/node-agent"
+  ],
+  "scripts": {
+    "build": "npm run build -w @anvaya/core && npm run build -w @anvaya/sdk && npm run build -w @anvaya/server && npm run build -w @anvaya/ui",
+    "build:libs": "npm run build -w @anvaya/core && npm run build -w @anvaya/sdk && npm run build -w @anvaya/server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint packages --ext .ts,.tsx",
+    "migrate": "npm run migrate -w @anvaya/server",
+    "seed": "npm run seed -w @anvaya/server",
+    "dev": "concurrently -n server,ui -c cyan,magenta \"npm run dev -w @anvaya/server\" \"npm run dev -w @anvaya/ui\"",
+    "dev:server": "npm run dev -w @anvaya/server",
+    "dev:ui": "npm run dev -w @anvaya/ui",
+    "start": "npm run start -w @anvaya/server",
+    "example": "npm run start -w @anvaya/example-node-agent",
+    "clean": "node scripts/clean.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "concurrently": "^9.1.0",
+    "eslint": "^8.57.1",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
