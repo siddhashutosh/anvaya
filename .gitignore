@@ -32,4 +32,8 @@ packages/ui/dist/
 .env*
 
 # demo assets (large binaries, regenerate with demo/capture.mjs)
-demo/
+demo/*.mp4
+demo/*.gif
+demo/*.png
+demo/frames/
+demo/node_modules/
