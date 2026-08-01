@@ -417,6 +417,55 @@ describe('authentication (FR-2.10, NFR-4.5)', () => {
   });
 });
 
+describe('read-only deployment (public demo)', () => {
+  it('refuses spans with 403 when writes are disabled', async () => {
+    const readOnly = await harness({ ingest: { acceptWrites: false } });
+
+    const res = await readOnly.app.inject({
+      method: 'POST',
+      url: '/v1/ingest',
+      payload: { service: 'demo', spans: wireSpans() },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.code).toBe('INGEST_DISABLED');
+
+    // Nothing reached storage.
+    const traces = await readOnly.app.inject({ method: 'GET', url: '/v1/traces' });
+    expect(traces.json().items).toHaveLength(0);
+
+    await readOnly.close();
+  });
+
+  it('refuses before parsing, so a malformed body is still a 403', async () => {
+    // A read-only instance must not spend validation on a payload it will never
+    // store, and the refusal must not depend on the payload being well-formed.
+    const readOnly = await harness({ ingest: { acceptWrites: false } });
+    const res = await readOnly.app.inject({ method: 'POST', url: '/v1/ingest', payload: {} });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.code).toBe('INGEST_DISABLED');
+    await readOnly.close();
+  });
+
+  it('keeps reads working — the dashboard is the point of a demo', async () => {
+    const readOnly = await harness({ ingest: { acceptWrites: false } });
+    for (const url of ['/v1/traces', '/v1/findings', '/v1/incidents', '/v1/taxonomy']) {
+      expect((await readOnly.app.inject({ method: 'GET', url })).statusCode).toBe(200);
+    }
+    await readOnly.close();
+  });
+
+  it('advertises the restriction in /v1/meta', async () => {
+    const readOnly = await harness({ ingest: { acceptWrites: false } });
+    const meta = await readOnly.app.inject({ method: 'GET', url: '/v1/meta' });
+    expect(meta.json().deployment.acceptsWrites).toBe(false);
+    await readOnly.close();
+
+    // Default deployments are unaffected.
+    expect((await h.app.inject({ method: 'GET', url: '/v1/meta' })).json().deployment.acceptsWrites).toBe(true);
+  });
+});
+
 describe('dashboard hosting (single-origin deployment)', () => {
   it('serves the built dashboard at the root', async () => {
     // The HLD's production topology is one process serving both API and UI.

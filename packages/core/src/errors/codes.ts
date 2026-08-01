@@ -37,6 +37,8 @@ export const ERROR_CODES = Object.freeze({
   // auth
   AUTH_MISSING: 'AUTH_MISSING',
   AUTH_INVALID: 'AUTH_INVALID',
+  /** Writes are disabled on this deployment; no credential can satisfy it. */
+  INGEST_DISABLED: 'INGEST_DISABLED',
 
   // not found
   NOT_FOUND: 'NOT_FOUND',

@@ -71,6 +71,17 @@ export const ingestConfigSchema = z.object({
    * schedule — is the practical recovery mechanism (ADR-0009).
    */
   opportunisticSweepRate: z.number().min(0).max(1).default(0.1),
+  /**
+   * Whether this deployment accepts spans at all.
+   *
+   * A public demo is a read-only shop window: the seeded data is the point, and
+   * an open write endpoint in front of a free-tier database is an invitation to
+   * fill it. An API key is not a substitute here — a browser dashboard has to
+   * ship its key to the client, so on a public deployment that key is readable
+   * by anyone who opens devtools. Refusing writes outright is the only control
+   * that actually holds.
+   */
+  acceptWrites: z.boolean().default(true),
   redactServerSide: z.boolean().default(true),
 });
 

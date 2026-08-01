@@ -6,6 +6,7 @@
  */
 
 import {
+  AnvayaError,
   CATALOG,
   DAY,
   ERROR_CODES,
@@ -99,6 +100,9 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
     },
     deployment: {
       ingestMode: deps.config.ingest.mode,
+      // Advertised so a client learns this is a read-only instance from the
+      // capability document rather than from a 403 on its first write.
+      acceptsWrites: deps.config.ingest.acceptWrites,
       storageDriver: deps.config.storage.driver,
       // True when running on a stateless host with no external database: data
       // survives only as long as the instance. Surfaced so the dashboard can say
@@ -111,6 +115,18 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
   // ── ingest ────────────────────────────────────────────────────────────────
 
   app.post('/v1/ingest', async (request, reply) => {
+    // Checked before the body is parsed: a read-only deployment should spend
+    // nothing on a payload it will not store, and the refusal must not depend
+    // on the payload being well-formed.
+    if (!deps.config.ingest.acceptWrites) {
+      throw new AnvayaError('this deployment does not accept spans', {
+        code: ERROR_CODES.INGEST_DISABLED,
+        category: 'auth',
+        httpStatus: 403,
+        context: { hint: 'run your own collector — see the repository README' },
+      });
+    }
+
     const parsed = ingestPayloadSchema.safeParse(request.body);
     if (!parsed.success) {
       throw new ValidationError('invalid ingest payload', {

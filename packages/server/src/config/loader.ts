@@ -115,6 +115,7 @@ function readEnv(env: NodeJS.ProcessEnv): Record<string, unknown> {
     ['POSTGRES_URL', 'storage', 'connectionString', 'string'],
     ['ANVAYA_INGEST_MODE', 'ingest', 'mode', 'string'],
     ['ANVAYA_API_KEY', 'ingest', 'apiKey', 'string'],
+    ['ANVAYA_INGEST_ACCEPT_WRITES', 'ingest', 'acceptWrites', 'boolean'],
     ['ANVAYA_INGEST_QUEUE_SIZE', 'ingest', 'maxQueueSize', 'number'],
     ['ANVAYA_TRACE_IDLE_MS', 'ingest', 'traceIdleMs', 'number'],
     ['ANVAYA_DETECTION_ENABLED', 'detection', 'enabled', 'boolean'],

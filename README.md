@@ -8,6 +8,10 @@ traces, and answers the question tracing and eval tools don't:
 *Anvaya* (अन्वय) is Sanskrit for *the logical connection between things; the sequence that
 makes a thing intelligible*.
 
+**Live demo → [anvaya-liard.vercel.app](https://anvaya-liard.vercel.app)** — real seeded
+traffic with injected failures. It is read-only: the demo refuses spans so its database
+stays a shop window. Run it locally to ingest your own.
+
 ```
 ┌──────────────┐   spans   ┌────────────────────────────┐        ┌───────────┐
 │  your AI app │──────────▶│  ingest → detect → attribute│───────▶│ dashboard │
@@ -246,6 +250,7 @@ zero configuration; the common environment variables are:
 | `ANVAYA_PORT` | `4319` | Collector port |
 | `ANVAYA_DB_PATH` | `./data/anvaya.db` | SQLite file |
 | `ANVAYA_API_KEY` | *(none)* | Shared ingest/read key; unauthenticated with a startup warning if unset. **Set `VITE_ANVAYA_API_KEY` to match**, or the dashboard 401s |
+| `ANVAYA_INGEST_ACCEPT_WRITES` | `true` | Set `false` for a read-only instance: `/v1/ingest` returns 403, reads still work |
 | `ANVAYA_LOG_LEVEL` | `info` | `trace`…`fatal` |
 | `ANVAYA_JUDGE_ENABLED` | `false` | Enable the billed L3 tier |
 | `ANVAYA_JUDGE_BASE_URL` | Anthropic | Point the judge at a gateway or proxy |
