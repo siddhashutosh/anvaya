@@ -1,12 +1,12 @@
 ﻿/**
- * L2 statistical detectors â€” INF-005, RET-002, RET-004, RET-007, TOL-006, ECO-002, ECO-003.
+ * L2 statistical detectors — INF-005, RET-002, RET-004, RET-007, TOL-006, ECO-002, ECO-003.
  *
  * This is the tier that catches the failure mode per-request checks cannot see:
  * gradual degradation. Every detector here requires a baseline and emits nothing
  * rather than a low-quality finding when it lacks one (FR-3.12).
  *
- * Drift thresholds follow the standard convention â€” PSI < 0.1 stable,
- * 0.1-0.25 moderate, > 0.25 significant â€” and are configurable.
+ * Drift thresholds follow the standard convention — PSI < 0.1 stable,
+ * 0.1-0.25 moderate, > 0.25 significant — and are configurable.
  */
 
 import {
@@ -80,7 +80,7 @@ export const latencyOutlierDetector: Detector = {
 };
 
 /**
- * RET-002 Â· Retrieval quality collapse â€” Barnett FP2, the origin of a great many
+ * RET-002 · Retrieval quality collapse — Barnett FP2, the origin of a great many
  * failures that surface as hallucination.
  */
 export const retrievalQualityDetector: Detector = {
@@ -117,7 +117,7 @@ export const retrievalQualityDetector: Detector = {
           code: 'RET-002',
           spanId: span.spanId,
           confidence: Math.min(0.95, 0.6 + 0.05 * Math.abs(z)),
-          detail: `Top-1 relevance was ${top1.toFixed(2)} against a baseline of ${stats.mean.toFixed(2)} over ${stats.count} samples. The answer may be in the corpus but ranking too low â€” check reranker top-k, chunking strategy, and query-document vocabulary gap.`,
+          detail: `Top-1 relevance was ${top1.toFixed(2)} against a baseline of ${stats.mean.toFixed(2)} over ${stats.count} samples. The answer may be in the corpus but ranking too low — check reranker top-k, chunking strategy, and query-document vocabulary gap.`,
           evidence: [
             zEvidence(top1, stats),
             evidence('zScore', Number(z.toFixed(2))),
@@ -171,7 +171,7 @@ export const retrievalLatencyDetector: Detector = {
 };
 
 /**
- * RET-007 Â· Embedding space weakness â€” OWASP LLM08. An embedding-model version
+ * RET-007 · Embedding space weakness — OWASP LLM08. An embedding-model version
  * mismatch between index time and query time produces exactly this signature.
  */
 export const embeddingWeaknessDetector: Detector = {
@@ -248,7 +248,7 @@ export const toolLatencyDetector: Detector = {
           code: 'TOL-006',
           spanId: span.spanId,
           confidence: Math.min(0.9, 0.5 + 0.05 * z),
-          detail: `Tool "${toolName}" took ${Math.round(span.durationMs)}ms against a ${Math.round(stats.mean)}ms baseline. Use per-tool timeouts â€” a slow tool inside an agent loop multiplies by the iteration count.`,
+          detail: `Tool "${toolName}" took ${Math.round(span.durationMs)}ms against a ${Math.round(stats.mean)}ms baseline. Use per-tool timeouts — a slow tool inside an agent loop multiplies by the iteration count.`,
           evidence: [
             zEvidence(span.durationMs, stats),
             evidence('zScore', Number(z.toFixed(2))),
@@ -285,7 +285,7 @@ export const costSpikeDetector: Detector = {
         code: 'ECO-002',
         ...(topSpan ? { spanId: topSpan.spanId } : {}),
         confidence: Math.min(0.9, 0.5 + 0.05 * z),
-        detail: `Trace cost $${cost.toFixed(4)} against a baseline of $${stats.mean.toFixed(4)} (z=${z.toFixed(1)}). Attribute to a span before acting â€” a spike whose origin is AGT-003 is a control-flow bug, not a pricing problem.`,
+        detail: `Trace cost $${cost.toFixed(4)} against a baseline of $${stats.mean.toFixed(4)} (z=${z.toFixed(1)}). Attribute to a span before acting — a spike whose origin is AGT-003 is a control-flow bug, not a pricing problem.`,
         evidence: [
           zEvidence(cost, stats),
           evidence('zScore', Number(z.toFixed(2))),
@@ -338,7 +338,7 @@ export function resetDriftState(): void {
 }
 
 /**
- * ECO-003 Â· Feature drift.
+ * ECO-003 · Feature drift.
  *
  * Emits only at the SIGNIFICANT threshold (PSI > 0.25). Moderate drift is
  * genuinely common and genuinely uninteresting on its own; alerting on it is the
@@ -387,7 +387,7 @@ export const featureDriftDetector: Detector = {
           // Never promoted above medium: drift is an indicator, and letting it
           // outrank a concrete failure would make it the attributed origin.
           severity: 'medium',
-          detail: `"${feature.metric}" shifted significantly (PSI ${psiValue.toFixed(3)}, threshold ${ctx.thresholds.psiSignificant}). Drift is a leading indicator, not a failure â€” investigate what changed: corpus, traffic mix, model version, or prompt.`,
+          detail: `"${feature.metric}" shifted significantly (PSI ${psiValue.toFixed(3)}, threshold ${ctx.thresholds.psiSignificant}). Drift is a leading indicator, not a failure — investigate what changed: corpus, traffic mix, model version, or prompt.`,
           evidence: [
             evidence('feature', feature.metric),
             evidence('psi', Number(psiValue.toFixed(4))),

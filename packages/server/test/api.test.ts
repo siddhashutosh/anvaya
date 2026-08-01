@@ -417,6 +417,94 @@ describe('authentication (FR-2.10, NFR-4.5)', () => {
   });
 });
 
+describe('dashboard hosting (single-origin deployment)', () => {
+  it('serves the built dashboard at the root', async () => {
+    // The HLD's production topology is one process serving both API and UI.
+    const res = await h.app.inject({ method: 'GET', url: '/' });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toContain('text/html');
+    expect(res.body).toContain('<div id="root">');
+  });
+
+  it('falls back to the SPA shell so deep links survive a refresh', async () => {
+    const res = await h.app.inject({ method: 'GET', url: '/traces/abc123' });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toContain('text/html');
+  });
+
+  it('keeps the JSON envelope for unknown API paths', async () => {
+    const res = await h.app.inject({ method: 'GET', url: '/v1/definitely-not-a-route' });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().error.code).toBe('NOT_FOUND');
+  });
+
+  it('does not serve HTML for non-GET requests', async () => {
+    const res = await h.app.inject({ method: 'POST', url: '/not-a-route' });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().error.code).toBe('NOT_FOUND');
+  });
+
+  it('returns JSON 404s when UI serving is disabled', async () => {
+    const apiOnly = await harness({ server: { serveUi: false } });
+    const res = await apiOnly.app.inject({ method: 'GET', url: '/' });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().error.code).toBe('NOT_FOUND');
+    await apiOnly.close();
+  });
+
+  it('allows the built dashboard origin, not just the dev server', async () => {
+    // Allowing only :5173 blocked the *built* UI, which is the one that ships.
+    const config = configSchema.parse({});
+    expect(config.server.corsOrigins).toContain('http://localhost:5173');
+    expect(config.server.corsOrigins).toContain('http://localhost:4173');
+  });
+});
+
+describe('trust-boundary array bounds', () => {
+  it('rejects a span whose document list exceeds the cap', async () => {
+    const { spans } = trace()
+      .span({
+        name: 'search',
+        kind: 'retriever',
+        retrieval: {
+          indexName: 'kb',
+          documents: Array.from({ length: 1001 }, (_, i) => ({ id: `d${i}`, score: 0.5 })),
+        },
+      })
+      .build();
+
+    const res = await h.app.inject({
+      method: 'POST',
+      url: '/v1/ingest',
+      payload: { service: 'svc', spans },
+    });
+
+    // Accepted batch, rejected span — the bound is enforced per span.
+    expect(res.statusCode).toBe(202);
+    expect(res.json().rejected).toBe(1);
+  });
+
+  it('accepts a document list at the cap', async () => {
+    const { spans } = trace()
+      .span({
+        name: 'search',
+        kind: 'retriever',
+        retrieval: {
+          indexName: 'kb',
+          documents: Array.from({ length: 1000 }, (_, i) => ({ id: `d${i}`, score: 0.5 })),
+        },
+      })
+      .build();
+
+    const res = await h.app.inject({
+      method: 'POST',
+      url: '/v1/ingest',
+      payload: { service: 'svc', spans },
+    });
+    expect(res.json().accepted).toBe(1);
+  });
+});
+
 describe('error envelope (FR-6.11, FR-6.12, NFR-4.6)', () => {
   it('attaches a request id to every response', async () => {
     const res = await h.app.inject({ method: 'GET', url: '/health' });

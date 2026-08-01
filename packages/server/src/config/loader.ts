@@ -69,6 +69,8 @@ function readEnv(env: NodeJS.ProcessEnv): Record<string, unknown> {
     ['ANVAYA_PORT', 'server', 'port', 'number'],
     ['ANVAYA_DEV_MODE', 'server', 'devMode', 'boolean'],
     ['ANVAYA_CORS_ORIGINS', 'server', 'corsOrigins', 'csv'],
+    ['ANVAYA_SERVE_UI', 'server', 'serveUi', 'boolean'],
+    ['ANVAYA_UI_PATH', 'server', 'uiPath', 'string'],
     ['ANVAYA_DB_PATH', 'storage', 'path', 'string'],
     ['ANVAYA_API_KEY', 'ingest', 'apiKey', 'string'],
     ['ANVAYA_INGEST_QUEUE_SIZE', 'ingest', 'maxQueueSize', 'number'],

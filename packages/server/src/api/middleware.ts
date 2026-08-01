@@ -55,14 +55,19 @@ export function registerMiddleware(app: FastifyInstance, config: Config, logger:
     errorBoundary(error, request, reply, config, logger);
   });
 
-  app.setNotFoundHandler((request, reply) => {
-    void reply.code(404).send({
-      error: {
-        code: ERROR_CODES.NOT_FOUND,
-        message: `No route for ${request.method} ${request.url}`,
-        requestId: request.requestId ?? 'unknown',
-      },
-    });
+  // The not-found handler lives in app.ts: it must decide between the JSON
+  // envelope and the SPA shell, which depends on whether a UI bundle is being
+  // served. Fastify permits only one per scope.
+}
+
+/** JSON 404 in the standard envelope. Used when no SPA fallback applies. */
+export function notFoundJson(request: FastifyRequest, reply: FastifyReply): void {
+  void reply.code(404).send({
+    error: {
+      code: ERROR_CODES.NOT_FOUND,
+      message: `No route for ${request.method} ${request.url}`,
+      requestId: request.requestId ?? 'unknown',
+    },
   });
 }
 

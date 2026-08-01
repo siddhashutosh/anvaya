@@ -8,6 +8,19 @@
 import { z } from 'zod';
 import { SPAN_KINDS } from '../types/span.js';
 
+/**
+ * Array bounds at the trust boundary.
+ *
+ * The batch size was capped but the arrays *inside* a span were not, so a single
+ * span could carry an unbounded document or message list. Everything downstream
+ * — grouping, spreads, JSON serialisation — then inherits that unboundedness
+ * from untrusted input.
+ */
+const MAX_DOCUMENTS = 1000;
+const MAX_MESSAGES = 2000;
+const MAX_EVENTS = 1000;
+const MAX_TOOL_NAMES = 500;
+
 export const attributeValueSchema = z.union([
   z.string(),
   z.number(),
@@ -53,8 +66,8 @@ export const llmPayloadSchema = z.object({
   contextLimit: z.number().int().positive().optional(),
   systemInstructions: z.string().optional(),
   inputMessageCount: z.number().int().nonnegative().optional(),
-  inputMessages: z.array(chatMessageSchema).optional(),
-  outputMessages: z.array(chatMessageSchema).optional(),
+  inputMessages: z.array(chatMessageSchema).max(MAX_MESSAGES).optional(),
+  outputMessages: z.array(chatMessageSchema).max(MAX_MESSAGES).optional(),
   reasoningText: z.string().optional(),
   costUsd: z.number().nonnegative().optional(),
 });
@@ -72,7 +85,7 @@ export const retrievalPayloadSchema = z.object({
   indexName: z.string().optional(),
   topK: z.number().int().positive().optional(),
   scoreThreshold: z.number().optional(),
-  documents: z.array(retrievedDocumentSchema).optional(),
+  documents: z.array(retrievedDocumentSchema).max(MAX_DOCUMENTS).optional(),
 });
 
 export const toolPayloadSchema = z.object({
@@ -85,7 +98,7 @@ export const toolPayloadSchema = z.object({
   mutating: z.boolean().optional(),
   privileged: z.boolean().optional(),
   parameterSchema: z.unknown().optional(),
-  availableTools: z.array(z.string()).optional(),
+  availableTools: z.array(z.string()).max(MAX_TOOL_NAMES).optional(),
 });
 
 export const agentPayloadSchema = z.object({
@@ -112,7 +125,7 @@ export const spanRecordSchema = z.object({
   status: z.enum(['ok', 'error', 'unset']),
   statusMessage: z.string().max(2000).optional(),
   attributes: attributeMapSchema.default({}),
-  events: z.array(spanEventSchema).default([]),
+  events: z.array(spanEventSchema).max(MAX_EVENTS).default([]),
   llm: llmPayloadSchema.optional(),
   retrieval: retrievalPayloadSchema.optional(),
   tool: toolPayloadSchema.optional(),

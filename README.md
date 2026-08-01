@@ -63,13 +63,20 @@ Needs **Node.js ≥ 20**. No Docker, no external database, no API key.
 
 ```bash
 npm install
-npm run build:libs
-npm run seed            # 120 demo traces with injected failures (optional)
-npm run dev             # collector on :4319, dashboard on :5173
+npm run build
+npm run seed            # 150 demo traces with injected failures (optional)
+npm start               # collector + dashboard together on :4319
 ```
 
-Open <http://localhost:5173>. With seeded data, go to **Traces → any trace with findings**
-and look at the **Diagnosis** card.
+Open <http://localhost:4319>. The server hosts the dashboard itself — one process, one
+port, no CORS. With seeded data, go to **Traces → any trace with findings** and look at
+the **Diagnosis** card.
+
+For live reload while developing:
+
+```bash
+npm run dev             # collector on :4319, Vite dashboard on :5173
+```
 
 Run the instrumented example app against it:
 
@@ -204,7 +211,7 @@ Dependency direction is acyclic and enforced: `ui → server → core`, `sdk →
 |---|---|
 | `npm run build` | Build every package |
 | `npm run build:libs` | Build core, sdk, server (skip the UI bundle) |
-| `npm test` | Run the full test suite (230 tests) |
+| `npm test` | Run the full test suite (238 tests) |
 | `npm run typecheck` | Strict typecheck across all packages |
 | `npm run lint` | ESLint |
 | `npm run dev` | Collector + dashboard together |

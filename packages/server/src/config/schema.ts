@@ -13,7 +13,28 @@ export const serverConfigSchema = z.object({
   port: z.number().int().min(1).max(65535).default(4319),
   /** Enables stack traces in error responses. Must stay false in production (NFR-4.6). */
   devMode: z.boolean().default(false),
-  corsOrigins: z.array(z.string()).default(['http://localhost:5173', 'http://127.0.0.1:5173']),
+  /**
+   * Browser origins allowed to call the API.
+   *
+   * Covers the Vite dev server (5173) AND the preview/static-build server
+   * (4173) — allowing only the dev port meant the *built* dashboard was blocked,
+   * which is the one that ships. In the default production topology the server
+   * serves the UI itself, so it is same-origin and this list is unused.
+   */
+  corsOrigins: z
+    .array(z.string())
+    .default([
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://localhost:4173',
+      'http://127.0.0.1:4173',
+    ]),
+  /**
+   * Serve the built dashboard from this server when the bundle exists.
+   * Single-origin deployment: no CORS, one process, one port.
+   */
+  serveUi: z.boolean().default(true),
+  uiPath: z.string().optional(),
   bodyLimitBytes: z.number().int().positive().default(8 * 1024 * 1024),
   shutdownTimeoutMs: z.number().int().positive().default(10_000),
 });

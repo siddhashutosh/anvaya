@@ -19,8 +19,23 @@ import type {
   TraceSummary,
 } from './types';
 
-const BASE: string =
-  (import.meta.env.VITE_ANVAYA_API as string | undefined) ?? 'http://localhost:4319';
+/** Vite dev (5173) and preview (4173) run on their own ports; everything else
+ *  is assumed to be the collector serving this bundle itself. */
+const VITE_PORTS = new Set(['5173', '4173']);
+
+function resolveBase(): string {
+  const configured = import.meta.env.VITE_ANVAYA_API as string | undefined;
+  if (configured) return configured;
+
+  // Served by the collector: use the current origin so a deployment behind any
+  // host, port or reverse proxy works without a rebuild.
+  if (typeof window !== 'undefined' && !VITE_PORTS.has(window.location.port)) {
+    return window.location.origin;
+  }
+  return 'http://localhost:4319';
+}
+
+const BASE: string = resolveBase();
 
 /**
  * Read key for a collector started with `ANVAYA_API_KEY`.
