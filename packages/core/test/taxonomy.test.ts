@@ -154,8 +154,13 @@ describe('taxonomy catalog', () => {
 // failing: this suite guards the catalog against drifting from the prose spec,
 // and where the prose is absent there is no drift to detect. The catalog tests
 // above still run everywhere — they are the invariants a consumer depends on.
-describe.skipIf(!existsSync(DOC_PATH))('catalog agrees with the taxonomy document (AC-14)', () => {
-  const doc = readFileSync(DOC_PATH, 'utf8');
+const HAS_DOC = existsSync(DOC_PATH);
+
+describe.skipIf(!HAS_DOC)('catalog agrees with the taxonomy document (AC-14)', () => {
+  // Read guarded, not just skipped: a describe body is evaluated during
+  // collection even when every test inside it will be skipped, so an
+  // unconditional read here fails the whole file before the skip applies.
+  const doc = HAS_DOC ? readFileSync(DOC_PATH, 'utf8') : '';
 
   it('documents every code in the catalog', () => {
     for (const mode of CATALOG) {
