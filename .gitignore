@@ -30,3 +30,6 @@ packages/ui/dist/
 
 .vercel
 .env*
+
+# demo assets (large binaries, regenerate with demo/capture.mjs)
+demo/
