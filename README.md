@@ -85,7 +85,7 @@ npm run example
 ```
 
 Then **stop the collector and run it again** — every request still completes at the same
-speed. That is [ADR-0005](docs/adr/0005-sdk-never-throws.md): Anvaya cannot break the app
+speed. That is **ADR-0005**: Anvaya cannot break the app
 it observes.
 
 ## Instrumenting your app
@@ -128,7 +128,7 @@ modes, all 7 [Barnett](https://arxiv.org/pdf/2401.05856) RAG failure points, and
 | `SEC` | 6 | Somebody is being harmed or attacked |
 | `ECO` | 6 | It is getting worse or more expensive |
 
-Full catalog: [docs/04-failure-taxonomy.md](docs/04-failure-taxonomy.md), or browse it in
+Full catalog: **docs/04-failure-taxonomy.md**, or browse it in
 the dashboard's **Taxonomy** view.
 
 ### Two analysis scopes
@@ -144,7 +144,7 @@ In a real chat application each user turn is its own trace, so a trace-scoped
 detector never sees two turns together. Anvaya therefore analyses **sessions** as
 well — comparing each trace against its immediate predecessor. This works with
 content capture off, because message *counts* are metadata, not content.
-See [ADR-0008](docs/adr/0008-session-scoped-detection.md).
+See **ADR-0008**.
 
 ## Tiered detection
 
@@ -199,13 +199,12 @@ working but **ephemeral**, and `/v1/meta` reports
 database and set `DATABASE_URL` to make it durable; no other change is needed.
 
 Why the rearchitecting was necessary — and what it cost — is in
-[ADR-0009](docs/adr/0009-serverless-deployment.md).
+**ADR-0009**.
 
 ## Project layout
 
 ```
 anvaya/
-├── docs/                     design document, SRS, HLD, LLD, taxonomy, 7 ADRs
 ├── packages/
 │   ├── core/                 types · taxonomy · errors · logging · redaction
 │   ├── sdk/                  tracer · spans · resilient transport
@@ -217,16 +216,11 @@ anvaya/
 
 Dependency direction is acyclic and enforced: `ui → server → core`, `sdk → core`.
 
-## Documentation
+## Design record
 
-| Document | Contents |
-|---|---|
-| [Design Document](docs/00-design-document.md) | Problem, research foundation, product concept, risks |
-| [SRS](docs/01-srs.md) | Numbered FR/NFR, error-handling and logging requirements, acceptance criteria |
-| [HLD](docs/02-hld.md) | Components, data flow, cross-cutting concerns, quality tactics |
-| [LLD](docs/03-lld.md) | Interfaces, signatures, algorithms, schemas, test design |
-| [Failure taxonomy](docs/04-failure-taxonomy.md) | All 56 modes with definitions, sources, remediation |
-| [ADRs](docs/adr/) | The seven decisions that shape everything else |
+The full engineering record — design document, SRS, HLD, LLD, the 56-mode failure
+taxonomy and nine ADRs — is maintained but kept out of this repository. Available
+on request.
 
 ## Commands
 
@@ -271,14 +265,14 @@ Detector thresholds are configurable per detector — see
 - **Security findings record the secret *class*, never the value.** A finding that quotes
   the secret has re-created the exposure it is reporting.
 
-See [ADR-0007](docs/adr/0007-redaction-at-source.md).
+See **ADR-0007**.
 
 ## What this is not
 
 Not an LLM gateway or proxy (Anvaya never sits in your request path). Not a prompt-management
-platform. Not an offline eval harness — that is the complementary
-[LLM Eval Harness](../LLM%20Eval%20Harness/), which gates quality *before* merge while
-Anvaya explains what production actually does.
+platform. Not an offline eval harness — an eval harness gates quality *before* merge, on
+examples you chose in advance; Anvaya explains what production actually does, on traffic
+you never anticipated. They are complementary.
 
 ## References
 

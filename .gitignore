@@ -31,9 +31,10 @@ packages/ui/dist/
 .vercel
 .env*
 
-# demo assets (large binaries, regenerate with demo/capture.mjs)
-demo/*.mp4
-demo/*.gif
-demo/*.png
-demo/frames/
-demo/node_modules/
+
+# Local-only: design documents and demo tooling are kept on disk, not published.
+# Nothing here is secret — see .env.example for the config surface — but the
+# design record and marketing assets are not part of the shipped source.
+docs/
+demo/
+.local/
