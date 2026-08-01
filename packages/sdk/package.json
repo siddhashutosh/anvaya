@@ -19,6 +19,33 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/siddhashutosh/anvaya.git",
+    "directory": "packages/sdk"
+  },
+  "author": "Ashutosh Siddh",
+  "homepage": "https://github.com/siddhashutosh/anvaya#readme",
+  "bugs": {
+    "url": "https://github.com/siddhashutosh/anvaya/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "observability",
+    "tracing",
+    "instrumentation",
+    "sdk",
+    "opentelemetry",
+    "rag",
+    "agents"
+  ],
   "dependencies": {
     "@anvaya/core": "1.0.0"
   }

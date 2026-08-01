@@ -94,7 +94,24 @@ it observes.
 
 ## Instrumenting your app
 
-Under ten lines:
+### Getting the SDK
+
+**Not yet published to npm.** `npm install @anvaya/sdk` does not resolve today. Until it
+does, install it from a local build:
+
+```bash
+git clone https://github.com/siddhashutosh/anvaya.git
+cd anvaya && npm install && npm run build
+
+# then, from your own project
+npm install /path/to/anvaya/packages/sdk
+```
+
+The package is otherwise publish-ready, so the import path below is what it will be either
+way. If you'd rather not build anything, skip the SDK entirely and post OpenTelemetry
+spans to `/v1/ingest` — see the note below the example.
+
+### Then, under ten lines
 
 ```ts
 import { init, observeLLM, observeRetrieval } from '@anvaya/sdk';

@@ -19,6 +19,31 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/siddhashutosh/anvaya.git",
+    "directory": "packages/core"
+  },
+  "author": "Ashutosh Siddh",
+  "homepage": "https://github.com/siddhashutosh/anvaya#readme",
+  "bugs": {
+    "url": "https://github.com/siddhashutosh/anvaya/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "observability",
+    "failure-taxonomy",
+    "mast",
+    "rag",
+    "types"
+  ],
   "dependencies": {
     "zod": "^3.24.1"
   }
