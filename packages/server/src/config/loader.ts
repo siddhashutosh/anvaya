@@ -24,6 +24,7 @@ export function loadConfig(options: LoadConfigOptions = {}): Config {
   const envConfig = readEnv(env);
 
   const merged = deepMerge(deepMerge(fileConfig, envConfig), options.overrides ?? {});
+  inferDeployment(merged, env);
 
   const parsed = configSchema.safeParse(merged);
   if (!parsed.success) {
@@ -36,6 +37,42 @@ export function loadConfig(options: LoadConfigOptions = {}): Config {
     });
   }
   return deepFreeze(parsed.data);
+}
+
+/**
+ * Fill in the two settings a serverless deployment must have but which nobody
+ * remembers to set.
+ *
+ * A Postgres connection string with the driver left on `sqlite` would silently
+ * write to an ephemeral local file and lose every trace on the next cold start —
+ * a failure that looks like "the tool isn't recording anything" rather than like
+ * a misconfiguration. Both inferences yield to an explicit setting.
+ */
+function inferDeployment(config: Record<string, unknown>, env: NodeJS.ProcessEnv): void {
+  const storage = (config.storage ?? {}) as Record<string, unknown>;
+  const ingest = (config.ingest ?? {}) as Record<string, unknown>;
+
+  if (storage.connectionString && !storage.driver) {
+    storage.driver = 'postgres';
+  }
+
+  if (env.VERCEL) {
+    // A stateless host cannot drain an in-memory queue between invocations.
+    if (!ingest.mode) ingest.mode = 'inline';
+
+    // No database configured: fall back to SQLite in /tmp, the only writable
+    // path on the platform. Data lasts as long as the instance, which makes the
+    // deployment explorable immediately; adding DATABASE_URL upgrades it to
+    // durable without any other change. `serverless.ephemeralStorage` in
+    // /v1/meta tells the dashboard to say so rather than implying persistence.
+    if (!storage.connectionString) {
+      storage.driver = 'sqlite';
+      storage.path = '/tmp/anvaya.db';
+    }
+  }
+
+  config.storage = storage;
+  config.ingest = ingest;
 }
 
 function readConfigFile(path: string, required: boolean): Record<string, unknown> {
@@ -72,6 +109,11 @@ function readEnv(env: NodeJS.ProcessEnv): Record<string, unknown> {
     ['ANVAYA_SERVE_UI', 'server', 'serveUi', 'boolean'],
     ['ANVAYA_UI_PATH', 'server', 'uiPath', 'string'],
     ['ANVAYA_DB_PATH', 'storage', 'path', 'string'],
+    ['ANVAYA_STORAGE_DRIVER', 'storage', 'driver', 'string'],
+    // Vercel/Neon inject DATABASE_URL; POSTGRES_URL is the Marketplace alias.
+    ['DATABASE_URL', 'storage', 'connectionString', 'string'],
+    ['POSTGRES_URL', 'storage', 'connectionString', 'string'],
+    ['ANVAYA_INGEST_MODE', 'ingest', 'mode', 'string'],
     ['ANVAYA_API_KEY', 'ingest', 'apiKey', 'string'],
     ['ANVAYA_INGEST_QUEUE_SIZE', 'ingest', 'maxQueueSize', 'number'],
     ['ANVAYA_TRACE_IDLE_MS', 'ingest', 'traceIdleMs', 'number'],

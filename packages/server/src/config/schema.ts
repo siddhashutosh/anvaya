@@ -40,13 +40,23 @@ export const serverConfigSchema = z.object({
 });
 
 export const storageConfigSchema = z.object({
-  driver: z.literal('sqlite').default('sqlite'),
+  /** `sqlite` for local/self-hosted, `postgres` for serverless (ADR-0009). */
+  driver: z.enum(['sqlite', 'postgres']).default('sqlite'),
   path: z.string().default('./data/anvaya.db'),
   busyTimeoutMs: z.number().int().positive().default(5000),
+  /** Postgres connection string; required when driver is `postgres`. */
+  connectionString: z.string().optional(),
 });
 
 export const ingestConfigSchema = z.object({
   apiKey: z.string().optional(),
+  /**
+   * `worker` buffers spans in memory and analyses on a timer (stateful hosts).
+   * `inline` persists spans on arrival and analyses within the request, which is
+   * the only mode a serverless runtime can honour — there is no event loop
+   * between invocations and no shared memory across them. See ADR-0009.
+   */
+  mode: z.enum(['worker', 'inline']).default('worker'),
   maxQueueSize: z.number().int().positive().default(20_000),
   workerConcurrency: z.number().int().min(1).max(16).default(2),
   /** A trace is analysed when its root closes, or after this idle period. */

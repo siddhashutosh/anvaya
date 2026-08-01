@@ -119,8 +119,13 @@ export class SqliteStorage implements Storage {
 
   async saveTraceBundle(bundle: TraceBundle): Promise<void> {
     this.client.transaction(() => {
-      this.insertTrace(bundle.trace, bundle.attribution, bundle.sessionTurn);
+      this.insertTrace(bundle.trace, bundle.attribution, bundle.sessionTurn, true);
       for (const span of bundle.spans) this.insertSpan(span);
+
+      // Finding ids are generated fresh each analysis, so re-analysing a trace
+      // would append a second set rather than replace the first. The stored set
+      // is defined as "whatever the latest analysis produced".
+      this.client.run('DELETE FROM findings WHERE trace_id = ?', [bundle.trace.traceId]);
       for (const finding of bundle.findings) this.insertFinding(finding);
       for (const run of bundle.detectorRuns) {
         this.client.run(
@@ -137,14 +142,16 @@ export class SqliteStorage implements Storage {
     trace: TraceRecord,
     attribution?: Attribution,
     sessionTurn?: SessionTurn,
+    /** Only a full analysis marks the trace processed; `saveSpans` does not. */
+    analysed = false,
   ): void {
     this.client.run(
       `INSERT INTO traces (
          trace_id, session_id, service, environment, root_span_id, name,
          start_time, end_time, duration_ms, status, span_count,
          total_input_tokens, total_output_tokens, total_cost_usd,
-         finding_count, worst_severity, attributes, attribution, session_turn
-       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         finding_count, worst_severity, attributes, attribution, session_turn, analyzed_at
+       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
        ON CONFLICT(trace_id) DO UPDATE SET
          end_time = excluded.end_time,
          duration_ms = excluded.duration_ms,
@@ -155,8 +162,9 @@ export class SqliteStorage implements Storage {
          total_cost_usd = excluded.total_cost_usd,
          finding_count = excluded.finding_count,
          worst_severity = excluded.worst_severity,
-         attribution = excluded.attribution,
-         session_turn = COALESCE(excluded.session_turn, traces.session_turn)`,
+         attribution = COALESCE(excluded.attribution, traces.attribution),
+         session_turn = COALESCE(excluded.session_turn, traces.session_turn),
+         analyzed_at = COALESCE(excluded.analyzed_at, traces.analyzed_at)`,
       [
         trace.traceId,
         trace.sessionId ?? null,
@@ -177,6 +185,7 @@ export class SqliteStorage implements Storage {
         JSON.stringify(trace.attributes),
         attribution ? JSON.stringify(attribution) : null,
         sessionTurn ? JSON.stringify(sessionTurn) : null,
+        analysed ? Date.now() : null,
       ],
     );
   }
@@ -235,6 +244,67 @@ export class SqliteStorage implements Storage {
         finding.createdAt,
       ],
     );
+  }
+
+  // ── incremental path (ADR-0009) ───────────────────────────────────────────
+
+  /**
+   * Persist spans without analysing.
+   *
+   * The trace row is upserted so its time envelope only widens — spans arrive in
+   * any order and a later batch may carry an earlier span.
+   */
+  async saveSpans(trace: TraceRecord, spans: readonly SpanRecord[]): Promise<void> {
+    this.client.transaction(() => {
+      const existing = this.client.queryOne<{ start_time: number; end_time: number }>(
+        'SELECT start_time, end_time FROM traces WHERE trace_id = ?',
+        [trace.traceId],
+      );
+
+      const merged: TraceRecord = existing
+        ? {
+            ...trace,
+            startTime: Math.min(existing.start_time, trace.startTime),
+            endTime: Math.max(existing.end_time, trace.endTime),
+            durationMs:
+              Math.max(existing.end_time, trace.endTime) -
+              Math.min(existing.start_time, trace.startTime),
+          }
+        : trace;
+
+      this.insertTrace(merged);
+      for (const span of spans) this.insertSpan(span);
+
+      // Span count is authoritative from the table, not from this batch.
+      this.client.run(
+        `UPDATE traces SET span_count =
+           (SELECT COUNT(*) FROM spans WHERE spans.trace_id = traces.trace_id)
+         WHERE trace_id = ?`,
+        [trace.traceId],
+      );
+    });
+  }
+
+  async listUnanalysedTraces(olderThan: number, limit = 50): Promise<readonly string[]> {
+    return this.client
+      .query<{ trace_id: string }>(
+        `SELECT trace_id FROM traces
+         WHERE analyzed_at IS NULL AND start_time < ?
+         ORDER BY start_time ASC LIMIT ?`,
+        [olderThan, limit],
+      )
+      .map((r) => r.trace_id);
+  }
+
+  async getTraceSpans(traceId: string): Promise<readonly SpanRecord[]> {
+    return this.client
+      .query<SpanRow>('SELECT * FROM spans WHERE trace_id = ? ORDER BY start_time ASC', [traceId])
+      .map(rowToSpan);
+  }
+
+  async getTraceRecord(traceId: string): Promise<TraceRecord | undefined> {
+    const row = this.client.queryOne<TraceRow>('SELECT * FROM traces WHERE trace_id = ?', [traceId]);
+    return row ? rowToTrace(row) : undefined;
   }
 
   // ── trace reads ───────────────────────────────────────────────────────────

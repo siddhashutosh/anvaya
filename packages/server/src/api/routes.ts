@@ -21,11 +21,12 @@ import {
   type Severity,
   type TimeRange,
 } from '@anvaya/core';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Config } from '../config/schema.js';
 import type { DetectorRegistry } from '../detectors/registry.js';
 import { getAdapter } from '../ingest/adapters/index.js';
 import type { IngestWorker } from '../pipeline/worker.js';
+import type { InlineIngestor, IngestItem } from '../pipeline/inline.js';
 import type { Storage } from '../storage/types.js';
 import type { Metrics } from '../telemetry/metrics.js';
 import type { Redactor } from '@anvaya/core';
@@ -38,6 +39,8 @@ export interface RouteDeps {
   readonly config: Config;
   readonly redactor: Redactor;
   readonly judgeConfigured: boolean;
+  /** Present only in serverless (`inline`) mode — see ADR-0009. */
+  readonly inline?: InlineIngestor;
 }
 
 function parseRange(query: Record<string, unknown>): TimeRange {
@@ -94,6 +97,15 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
       judgeConfigured: deps.judgeConfigured,
       contentCaptureExpected: true,
     },
+    deployment: {
+      ingestMode: deps.config.ingest.mode,
+      storageDriver: deps.config.storage.driver,
+      // True when running on a stateless host with no external database: data
+      // survives only as long as the instance. Surfaced so the dashboard can say
+      // so rather than quietly implying persistence.
+      ephemeralStorage:
+        deps.config.storage.driver === 'sqlite' && deps.config.storage.path.startsWith('/tmp'),
+    },
   }));
 
   // ── ingest ────────────────────────────────────────────────────────────────
@@ -115,6 +127,7 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
     const payload = parsed.data;
     const adapter = getAdapter(payload.format);
     const errors: IngestAck['errors'][number][] = [];
+    const inlineItems: IngestItem[] = [];
     let accepted = 0;
 
     const ctx = {
@@ -137,22 +150,69 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
         ? deps.redactor.redactObject(result.value).value
         : result.value;
 
-      deps.worker.enqueue({
-        span,
-        service: payload.service,
-        environment: payload.environment,
-        ...(payload.sessionId !== undefined ? { sessionId: payload.sessionId } : {}),
-        receivedAt: Date.now(),
-      });
+      if (deps.inline) {
+        inlineItems.push({
+          span,
+          service: payload.service,
+          environment: payload.environment,
+          ...(payload.sessionId !== undefined ? { sessionId: payload.sessionId } : {}),
+        });
+      } else {
+        deps.worker.enqueue({
+          span,
+          service: payload.service,
+          environment: payload.environment,
+          ...(payload.sessionId !== undefined ? { sessionId: payload.sessionId } : {}),
+          receivedAt: Date.now(),
+        });
+      }
       accepted++;
+    }
+
+    // Serverless: persist and analyse before responding. There is no event loop
+    // after the response, so deferring the work would simply lose it.
+    let analysed = 0;
+    if (deps.inline && inlineItems.length > 0) {
+      ({ analysed } = await deps.inline.ingest(inlineItems));
     }
 
     deps.metrics.counter('ingest.spans_accepted', accepted);
     deps.metrics.counter('ingest.spans_rejected', errors.length);
 
-    const ack: IngestAck = { accepted, rejected: errors.length, errors: errors.slice(0, 20) };
+    const ack: IngestAck & { analysed?: number } = {
+      accepted,
+      rejected: errors.length,
+      errors: errors.slice(0, 20),
+      ...(deps.inline ? { analysed } : {}),
+    };
     return reply.code(202).send(ack);
   });
+
+  /**
+   * Cron target: analyse traces whose root span never arrived, so a client that
+   * crashed mid-trace cannot leave one permanently undiagnosed.
+   */
+  // GET as well as POST: Vercel Cron issues GET.
+  const sweep = async (_request: FastifyRequest, reply: FastifyReply) => {
+    if (!deps.inline) {
+      return reply.code(200).send({ mode: 'worker', analysed: 0, resolved: 0 });
+    }
+    const { analysed } = await deps.inline.sweep();
+    const resolved = await deps.storage.resolveStaleIncidents(
+      Date.now() - deps.config.analysis.autoResolveMs,
+    );
+
+    let purged = 0;
+    if (deps.config.retention.enabled) {
+      const cutoff = Date.now() - deps.config.retention.maxAgeDays * DAY;
+      purged = (await deps.storage.purgeOlderThan(cutoff)).traces;
+    }
+
+    return reply.send({ mode: 'inline', analysed, resolved, purged });
+  };
+
+  app.get('/v1/maintenance/sweep', sweep);
+  app.post('/v1/maintenance/sweep', sweep);
 
   // ── traces ────────────────────────────────────────────────────────────────
 

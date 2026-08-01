@@ -178,6 +178,29 @@ tool, so heuristics are never laundered as facts.
 
 ---
 
+## Deploying
+
+Anvaya runs in two shapes. The code is identical; only the host differs.
+
+| | **Self-hosted** | **Serverless** |
+|---|---|---|
+| Storage | SQLite file | Postgres (Neon) |
+| Ingest | queue + background worker | analysed inline, in the request |
+| Maintenance | `setInterval` | cron → `/v1/maintenance/sweep` |
+| Config | *(default)* | `DATABASE_URL` + `ANVAYA_INGEST_MODE=inline` |
+
+```bash
+vercel deploy --prod          # dashboard + API, one project
+```
+
+Without a `DATABASE_URL` the deployment falls back to SQLite in `/tmp` — fully
+working but **ephemeral**, and `/v1/meta` reports
+`deployment.ephemeralStorage: true` so nothing pretends otherwise. Attach a Neon
+database and set `DATABASE_URL` to make it durable; no other change is needed.
+
+Why the rearchitecting was necessary — and what it cost — is in
+[ADR-0009](docs/adr/0009-serverless-deployment.md).
+
 ## Project layout
 
 ```

@@ -30,15 +30,35 @@ function key(metric: string, scope: string): string {
 export class BaselineManager implements BaselineReader {
   private readonly entries = new Map<string, Entry>();
   private readonly logger: Logger;
+  /**
+   * Serverless mode: nothing survives between invocations, so baselines are
+   * loaded before each analysis and written back after it. Concurrent
+   * invocations resolve last-write-wins, which is acceptable for rolling
+   * statistics and is documented in ADR-0009.
+   */
+  private readonly reloadEveryTrace: boolean;
 
   constructor(
     private readonly storage: Storage,
     logger: Logger,
+    options: { reloadEveryTrace?: boolean } = {},
   ) {
     this.logger = logger.child('baselines');
+    this.reloadEveryTrace = options.reloadEveryTrace ?? false;
   }
 
-  /** Load persisted baselines into memory once at startup. */
+  /** In serverless mode, refresh from storage before analysing a trace. */
+  async refreshIfNeeded(): Promise<void> {
+    if (!this.reloadEveryTrace) return;
+    this.entries.clear();
+    await this.load();
+  }
+
+  get isRequestScoped(): boolean {
+    return this.reloadEveryTrace;
+  }
+
+  /** Load persisted baselines into memory. Once at startup, or per trace when request-scoped. */
   async load(): Promise<void> {
     const rows = await this.storage.listBaselines();
     for (const row of rows) {
@@ -49,7 +69,7 @@ export class BaselineManager implements BaselineReader {
         dirty: false,
       });
     }
-    this.logger.info('baselines loaded', { count: rows.length });
+    if (!this.reloadEveryTrace) this.logger.info('baselines loaded', { count: rows.length });
   }
 
   get(metric: string, scope = 'global'): BaselineStats | undefined {

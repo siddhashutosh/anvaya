@@ -183,6 +183,19 @@ export interface Storage {
   getTrace(traceId: string): Promise<TraceDetail | undefined>;
   listTraces(query: TraceQuery): Promise<Page<TraceSummary>>;
 
+  // ── incremental path (serverless inline ingest, ADR-0009) ────────────────
+  //
+  // Spans are durable the moment they arrive and analysis happens separately,
+  // because a stateless host cannot hold a partial trace in memory between
+  // requests.
+
+  /** Persist spans without analysing. Widens the trace envelope; never shrinks it. */
+  saveSpans(trace: TraceRecord, spans: readonly SpanRecord[]): Promise<void>;
+  /** Traces whose spans landed but which were never analysed — the cron sweep. */
+  listUnanalysedTraces(olderThan: number, limit?: number): Promise<readonly string[]>;
+  getTraceSpans(traceId: string): Promise<readonly SpanRecord[]>;
+  getTraceRecord(traceId: string): Promise<TraceRecord | undefined>;
+
   listFindings(query: FindingQuery): Promise<Page<Finding>>;
 
   upsertIncident(incident: Incident): Promise<void>;

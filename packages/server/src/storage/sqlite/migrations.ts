@@ -148,4 +148,17 @@ export const MIGRATIONS: readonly Migration[] = [
         ON traces(session_id, start_time DESC);
     `,
   },
+  {
+    version: 4,
+    name: 'analysis-marker',
+    sql: `
+      -- Marks traces the pipeline has processed, so the incremental ingest path
+      -- can find ones whose root span never arrived (ADR-0009). Present in both
+      -- adapters so inline mode is not Postgres-only.
+      ALTER TABLE traces ADD COLUMN analyzed_at INTEGER;
+
+      CREATE INDEX IF NOT EXISTS idx_traces_unanalyzed
+        ON traces(start_time) WHERE analyzed_at IS NULL;
+    `,
+  },
 ];

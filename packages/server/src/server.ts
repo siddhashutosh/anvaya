@@ -26,6 +26,7 @@ import { createJudge } from './detectors/judge/provider.js';
 import { createRegistry } from './detectors/index.js';
 import type { Detector } from './detectors/types.js';
 import { SpanQueue } from './ingest/queue.js';
+import { InlineIngestor } from './pipeline/inline.js';
 import { AnalysisPipeline } from './pipeline/pipeline.js';
 import { IngestWorker } from './pipeline/worker.js';
 import { createStorage } from './storage/index.js';
@@ -82,8 +83,11 @@ export async function createServer(options: AnvayaServerOptions = {}): Promise<A
   const storage = createStorage(config, logger);
   await storage.init();
 
-  const baselines = new BaselineManager(storage, logger);
-  await baselines.load();
+  // Inline mode runs on a stateless host, so baselines are read and written per
+  // trace rather than held in memory behind a flush timer (ADR-0009).
+  const inlineMode = config.ingest.mode === 'inline';
+  const baselines = new BaselineManager(storage, logger, { reloadEveryTrace: inlineMode });
+  if (!inlineMode) await baselines.load();
 
   const registry = createRegistry(options.detectors ?? []);
   const judge = createJudge(config.judge, logger);
@@ -130,6 +134,16 @@ export async function createServer(options: AnvayaServerOptions = {}): Promise<A
     concurrency: config.ingest.workerConcurrency,
   });
 
+  const inline = inlineMode
+    ? new InlineIngestor({
+        storage,
+        pipeline,
+        metrics,
+        logger,
+        sweepAfterMs: config.ingest.traceIdleMs,
+      })
+    : undefined;
+
   const app = await createApp({
     storage,
     worker,
@@ -139,10 +153,15 @@ export async function createServer(options: AnvayaServerOptions = {}): Promise<A
     redactor,
     judgeConfigured: judge !== undefined,
     logger,
+    ...(inline ? { inline } : {}),
   });
 
-  // Periodic maintenance: baseline persistence and retention.
-  const maintenanceTimer = setInterval(
+  // Periodic maintenance: baseline persistence and retention. Inline mode has no
+  // event loop between requests, so this work is driven by cron instead
+  // (POST /v1/maintenance/sweep).
+  const maintenanceTimer = inlineMode
+    ? undefined
+    : setInterval(
     () => {
       void baselines.flush().catch((e) => logger.warn('baseline flush failed', { err: e }));
       if (config.retention.enabled) {
@@ -157,7 +176,7 @@ export async function createServer(options: AnvayaServerOptions = {}): Promise<A
     },
     Math.min(config.retention.sweepIntervalMs, 60_000),
   );
-  if (typeof maintenanceTimer.unref === 'function') maintenanceTimer.unref();
+  if (maintenanceTimer && typeof maintenanceTimer.unref === 'function') maintenanceTimer.unref();
 
   let shuttingDown = false;
 
@@ -166,7 +185,7 @@ export async function createServer(options: AnvayaServerOptions = {}): Promise<A
     shuttingDown = true;
     logger.info('shutting down');
 
-    clearInterval(maintenanceTimer);
+    if (maintenanceTimer) clearInterval(maintenanceTimer);
     // Order matters: stop accepting, drain, flush state, then close storage.
     try {
       await app.close();
@@ -197,7 +216,8 @@ export async function createServer(options: AnvayaServerOptions = {}): Promise<A
     config,
     logger,
     async listen() {
-      worker.start();
+      // The worker's timer is meaningless in inline mode and would double-analyse.
+      if (!inlineMode) worker.start();
       const address = await app.listen({ host: config.server.host, port: config.server.port });
       logger.info('anvaya listening', {
         address,

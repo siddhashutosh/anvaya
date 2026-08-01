@@ -72,6 +72,14 @@ export class AnalysisPipeline {
     const started = performance.now();
     const log = this.logger.child('trace', { traceId: trace.traceId });
 
+    // Serverless: baselines do not survive between invocations, so they are
+    // read from storage before analysis and written back after it (ADR-0009).
+    try {
+      await this.deps.baselines.refreshIfNeeded();
+    } catch (e) {
+      log.warn('baseline refresh failed; detection continues without history', { err: e });
+    }
+
     // ── stage 1: enrich ─────────────────────────────────────────────────────
     let normalized: NormalizedTrace;
     try {
@@ -158,6 +166,8 @@ export class AnalysisPipeline {
     // baseline that already contains it.
     try {
       this.deps.baselines.update(normalized);
+      // Request-scoped baselines must be persisted now; there is no timer later.
+      if (this.deps.baselines.isRequestScoped) await this.deps.baselines.flush();
     } catch (e) {
       log.warn('baseline update failed', { err: e });
     }

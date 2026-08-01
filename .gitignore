@@ -24,3 +24,6 @@ Thumbs.db
 # vite
 packages/ui/dist/
 .vite/
+
+# vercel
+.vercel/
