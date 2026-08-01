@@ -292,4 +292,9 @@ you never anticipated. They are complementary.
 
 ## Licence
 
-MIT
+**Apache License 2.0** — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+Apache rather than MIT for the patent grant: contributors grant an express patent
+licence, and it terminates for anyone who brings a patent suit over the work. It also
+requires modified files to say they were changed, and does not grant rights to the
+Anvaya name.

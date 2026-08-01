@@ -2,7 +2,7 @@
   "name": "@anvaya/ui",
   "version": "1.0.0",
   "description": "Anvaya dashboard — investigate AI failures",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "scripts": {

@@ -2,7 +2,7 @@
   "name": "@anvaya/server",
   "version": "1.0.0",
   "description": "Anvaya collector and analysis server — ingest, detect, attribute, store, serve",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
