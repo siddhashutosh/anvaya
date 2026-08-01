@@ -181,6 +181,27 @@ function deepFreeze<T>(value: T): T {
 
 const SECRET_KEYS = new Set(['apiKey', 'webhookUrl']);
 
+/** Keys holding a URL whose credentials must be stripped but whose identity is useful. */
+const CREDENTIALED_URL_KEYS = new Set(['connectionString']);
+
+/**
+ * Mask the credentials in a connection URL while keeping host and database.
+ *
+ * "Which database am I actually talking to?" is a real operational question — and
+ * answering it wrongly is a classic incident — so the identity stays legible.
+ * The password never does.
+ */
+export function maskConnectionString(value: string): string {
+  try {
+    const url = new URL(value);
+    const user = url.username ? `${url.username}:***@` : '';
+    return `${url.protocol}//${user}${url.host}${url.pathname}`;
+  } catch {
+    // Unparseable: reveal nothing rather than guess at its shape.
+    return '[REDACTED]';
+  }
+}
+
 /** Effective config with every secret masked, for the startup log (LG-12). */
 export function redactConfig(config: Config): unknown {
   const walk = (node: unknown): unknown => {
@@ -188,7 +209,13 @@ export function redactConfig(config: Config): unknown {
     if (!isPlainObject(node)) return node;
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(node)) {
-      out[k] = SECRET_KEYS.has(k) && v ? '[REDACTED]' : walk(v);
+      if (SECRET_KEYS.has(k) && v) {
+        out[k] = '[REDACTED]';
+      } else if (CREDENTIALED_URL_KEYS.has(k) && typeof v === 'string' && v) {
+        out[k] = maskConnectionString(v);
+      } else {
+        out[k] = walk(v);
+      }
     }
     return out;
   };

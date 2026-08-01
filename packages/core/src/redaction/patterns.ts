@@ -11,6 +11,7 @@ export type SecretClass =
   | 'bearer_token'
   | 'private_key'
   | 'aws_key'
+  | 'connection_string'
   | 'jwt'
   | 'email'
   | 'phone'
@@ -40,6 +41,15 @@ export function defaultPatterns(): RedactionPattern[] {
       name: 'aws_key',
       pattern: /\b((?:AKIA|ASIA|AIDA|AROA)[A-Z0-9]{16})\b/g,
       replacement: '[REDACTED:aws_key]',
+      enabled: true,
+    },
+    {
+      name: 'connection_string',
+      // Any scheme://user:password@host — database URLs are the common case, and
+      // a driver error will happily quote the whole thing back at you.
+      // Credentials are replaced; the host survives so the log stays diagnostic.
+      pattern: /\b([a-z][a-z0-9+.-]*:\/\/)([^\s:@/]+):([^\s@/]+)@/gi,
+      replacement: '$1$2:[REDACTED:connection_string]@',
       enabled: true,
     },
     {

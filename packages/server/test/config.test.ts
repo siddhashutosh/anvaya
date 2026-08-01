@@ -93,6 +93,33 @@ describe('config loading', () => {
     expect(Object.isFrozen(config.detection.thresholds)).toBe(true);
   });
 
+  it('never writes a database password to the startup log (LG-12, NFR-4.5)', () => {
+    // Regression: `connectionString` was not in the redaction set, so the full
+    // Postgres URL — password included — went into the startup log, which on a
+    // managed platform means the provider's log store.
+    const config = loadConfig({
+      env: {
+        DATABASE_URL:
+          'postgresql://neondb_owner:npg_SUPERSECRET123@ep-cool-pooler.neon.tech/neondb?sslmode=require',
+      },
+    });
+    const rendered = JSON.stringify(redactConfig(config));
+
+    expect(rendered).not.toContain('npg_SUPERSECRET123');
+    // Identity stays legible — "which database am I talking to" is operational,
+    // and getting it wrong is its own incident.
+    expect(rendered).toContain('ep-cool-pooler.neon.tech');
+    expect(rendered).toContain('neondb_owner:***');
+  });
+
+  it('reveals nothing when the connection string is unparseable', () => {
+    const config = loadConfig({
+      env: { DATABASE_URL: 'not-a-url-but-has-a-secret-in-it' },
+      overrides: { storage: { driver: 'postgres' } },
+    });
+    expect(JSON.stringify(redactConfig(config))).not.toContain('secret-in-it');
+  });
+
   it('masks secrets for the startup log (LG-12)', () => {
     const config = loadConfig({
       env: { ANTHROPIC_API_KEY: 'sk-ant-supersecret', ANVAYA_API_KEY: 'ingest-secret' },

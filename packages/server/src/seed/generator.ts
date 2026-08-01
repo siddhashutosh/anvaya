@@ -151,6 +151,7 @@ export function generateSeedTraces(options: SeedOptions): SeedTrace[] {
       truncated,
       injection,
       consolidationLoss,
+      route,
     });
 
     const endTime = Math.max(...spans.map((s) => s.endTime));
@@ -195,14 +196,31 @@ interface BuildArgs {
   consolidationLoss: boolean;
   turnInSession: number;
   historyLoss: boolean;
+  route: string;
 }
 
 function buildTraceSpans(args: BuildArgs): SpanRecord[] {
   const { rnd } = args;
   const seeds: SpanSeed[] = [];
 
-  // 0 — root chain
-  seeds.push({ name: 'handle-support-request', kind: 'chain', startOffset: 0, durationMs: 0 });
+  // 0 — root chain.
+  //
+  // Cohort attributes live on the ROOT SPAN, not just on the trace record. Only
+  // spans cross the ingest API, so a collector reconstructs trace attributes
+  // from the root — which is also exactly what `t.setAttribute()` does in the
+  // SDK. Putting them only on the trace made local and remote seeding behave
+  // differently and left cost-by-cohort empty on a real deployment.
+  seeds.push({
+    name: 'handle-support-request',
+    kind: 'chain',
+    startOffset: 0,
+    durationMs: 0,
+    attributes: {
+      route: args.route,
+      'task.class': 'read-only',
+      model: 'claude-sonnet-5',
+    },
+  });
 
   // 1 — guardrail
   seeds.push({

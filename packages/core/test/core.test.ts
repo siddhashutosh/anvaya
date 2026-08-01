@@ -185,6 +185,16 @@ describe('redaction', () => {
     expect(redactor.redact('1234567812345678').value).toBe('1234567812345678');
   });
 
+  it('strips credentials from a connection URL but keeps the host', () => {
+    // A driver error will quote the whole DSN back at you, and that goes to a log.
+    const result = redactor.redact(
+      'connect failed: postgresql://neondb_owner:npg_SUPERSECRET@ep-x-pooler.neon.tech/neondb',
+    );
+    expect(result.value).not.toContain('npg_SUPERSECRET');
+    expect(result.value).toContain('ep-x-pooler.neon.tech');
+    expect(result.hits.map((h) => h.class)).toContain('connection_string');
+  });
+
   it('leaves IPv4 alone by default', () => {
     // Enabled by default this mangles service hosts and version strings.
     expect(redactor.redact('host 127.0.0.1').value).toBe('host 127.0.0.1');
