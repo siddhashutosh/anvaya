@@ -141,6 +141,7 @@ export async function createServer(options: AnvayaServerOptions = {}): Promise<A
         metrics,
         logger,
         sweepAfterMs: config.ingest.traceIdleMs,
+        opportunisticSweepRate: config.ingest.opportunisticSweepRate,
       })
     : undefined;
 

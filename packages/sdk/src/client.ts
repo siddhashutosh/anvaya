@@ -290,6 +290,7 @@ export class AnvayaClient {
       sent: 0,
       dropped: 0,
       failed: 0,
+      rejected: 0,
       circuitState: 'closed',
     };
     return {

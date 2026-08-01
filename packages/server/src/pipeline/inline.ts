@@ -31,6 +31,15 @@ export interface InlineIngestorOptions {
   readonly logger: Logger;
   /** A trace with no root is swept once it has been quiet this long. */
   readonly sweepAfterMs: number;
+  /**
+   * Chance that an ingest request also sweeps a few stale traces.
+   *
+   * Cron is the floor, not the mechanism — a Hobby-plan deployment gets one
+   * cron per day, which is far too slow to recover a trace whose client died.
+   * Piggybacking on traffic means recovery normally happens within seconds, and
+   * costs nothing on an idle system.
+   */
+  readonly opportunisticSweepRate?: number;
 }
 
 export interface IngestItem {
@@ -91,12 +100,31 @@ export class InlineIngestor {
       }
     }
 
+    await this.maybeSweep();
     return { analysed };
   }
 
   /**
-   * Analyse traces whose root span never arrived. Cron-driven, so a client that
-   * crashed mid-trace still gets its partial trace diagnosed.
+   * Occasionally recover stale traces on the back of ordinary traffic.
+   *
+   * Bounded to a couple of traces so an ingest request never turns into a long
+   * maintenance job, and failures are swallowed: a sweep must never affect the
+   * ingest it rode in on.
+   */
+  private async maybeSweep(): Promise<void> {
+    const rate = this.options.opportunisticSweepRate ?? 0;
+    if (rate <= 0 || Math.random() > rate) return;
+
+    try {
+      await this.sweep(2);
+    } catch (e) {
+      this.logger.debug('opportunistic sweep failed', { err: e });
+    }
+  }
+
+  /**
+   * Analyse traces whose root span never arrived, so a client that crashed
+   * mid-trace still gets its partial trace diagnosed.
    */
   async sweep(limit = 25): Promise<{ analysed: number }> {
     const storage = this.options.storage;

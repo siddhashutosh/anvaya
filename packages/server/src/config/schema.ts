@@ -65,6 +65,12 @@ export const ingestConfigSchema = z.object({
   /** Per-trace span ceiling; excess is dropped and counted (see TraceAssembler). */
   maxSpansPerTrace: z.number().int().positive().default(10_000),
   sweepIntervalMs: z.number().int().positive().default(1000),
+  /**
+   * Probability that an inline ingest request also recovers a couple of stale
+   * traces. Cron is capped at once a day on some hosts, so traffic — not the
+   * schedule — is the practical recovery mechanism (ADR-0009).
+   */
+  opportunisticSweepRate: z.number().min(0).max(1).default(0.1),
   redactServerSide: z.boolean().default(true),
 });
 

@@ -205,6 +205,32 @@ describe('transport resilience', () => {
     expect(client.stats.sent).toBe(0);
   });
 
+  it('counts spans the collector refused, rather than reporting them as sent', async () => {
+    // A 202 does not mean every span was kept. Counting the batch as wholly sent
+    // hid malformed spans behind a green transport.
+    const rejecting: Transport = {
+      circuitState: 'closed',
+      async send(payload) {
+        return ok({
+          accepted: payload.spans.length - 1,
+          rejected: 1,
+          errors: [{ index: 0, message: 'invalid span: llm.inputTokens: Expected integer' }],
+        });
+      },
+    };
+
+    const client = makeClient(rejecting, { batchSize: 10 });
+    for (let i = 0; i < 3; i++) {
+      const span = client.startSpan(`s-${i}`, 'llm');
+      if (span) client.record(span.end());
+    }
+    await client.flush();
+
+    expect(client.stats.rejected).toBe(1);
+    expect(client.stats.sent).toBe(2);
+    expect(client.stats.failed).toBe(0);
+  });
+
   it('awaits an in-flight flush rather than returning early', async () => {
     // Regression: returning early here silently lost buffered spans at shutdown.
     let release: (() => void) | undefined;

@@ -25,6 +25,8 @@ export interface BatchStats {
   readonly sent: number;
   readonly dropped: number;
   readonly failed: number;
+  /** Delivered but refused by the collector — usually a malformed span. */
+  readonly rejected: number;
   readonly circuitState: string;
 }
 
@@ -38,6 +40,7 @@ export class BatchProcessor {
   private sent = 0;
   private dropped = 0;
   private failed = 0;
+  private rejected = 0;
 
   constructor(private readonly options: BatchProcessorOptions) {
     this.scheduleFlush();
@@ -109,7 +112,20 @@ export class BatchProcessor {
       });
 
       if (result.ok) {
-        this.sent += batch.length;
+        // A 202 does not mean every span was kept: the collector validates each
+        // one and reports per-span rejections in the ack. Counting the batch as
+        // wholly sent would hide malformed spans behind a green transport —
+        // precisely the silent failure this project exists to surface.
+        const rejected = result.value.rejected ?? 0;
+        this.sent += batch.length - rejected;
+        if (rejected > 0) {
+          this.rejected += rejected;
+          this.options.logger.warn('anvaya sdk: collector rejected spans', {
+            rejected,
+            batchSize: batch.length,
+            reason: result.value.errors?.[0]?.message,
+          });
+        }
         continue;
       }
 
@@ -134,6 +150,7 @@ export class BatchProcessor {
       sent: this.sent,
       dropped: this.dropped,
       failed: this.failed,
+      rejected: this.rejected,
       circuitState: this.options.transport.circuitState,
     };
   }

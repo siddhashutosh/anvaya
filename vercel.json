@@ -12,12 +12,16 @@
   },
   "rewrites": [
     { "source": "/health", "destination": "/api/index" },
-    { "source": "/v1/:path*", "destination": "/api/index" }
+    { "source": "/v1/:path*", "destination": "/api/index" },
+    {
+      "source": "/((?!api/|assets/).*)",
+      "destination": "/index.html"
+    }
   ],
   "crons": [
     {
       "path": "/v1/maintenance/sweep",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }

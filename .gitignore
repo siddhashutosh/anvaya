@@ -27,3 +27,6 @@ packages/ui/dist/
 
 # vercel
 .vercel/
+
+.vercel
+.env*

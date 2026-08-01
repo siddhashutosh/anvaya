@@ -154,7 +154,9 @@ async function handleRequest({ question, sessionId, degraded, toolFails, loops }
         () =>
           callModel({
             answer,
-            inputTokens: 900 + context.length / 4,
+            // Token counts are integers by definition and the ingest schema
+            // enforces it — a fractional estimate is a rejected span.
+            inputTokens: Math.round(900 + context.length / 4),
             outputTokens: 60,
             finishReason: 'end_turn',
           }),
@@ -197,8 +199,16 @@ const stats = anvaya.stats;
 console.log(`\nCompleted ${SCENARIOS.length} requests in ${Date.now() - started}ms`);
 console.log(
   `Anvaya: ${stats.spansRecorded} spans recorded, ${stats.sent} sent, ` +
-    `${stats.failed} failed, ${stats.dropped} dropped, circuit ${stats.circuitState}`,
+    `${stats.rejected} rejected, ${stats.failed} failed, ${stats.dropped} dropped, ` +
+    `circuit ${stats.circuitState}`,
 );
+
+if (stats.rejected > 0) {
+  console.log(
+    '\nSome spans were delivered but refused by the collector — check the warning above.\n' +
+      'A 202 does not mean every span was kept.',
+  );
+}
 
 if (stats.failed > 0) {
   console.log(
