@@ -96,20 +96,17 @@ it observes.
 
 ### Getting the SDK
 
-**Not yet published to npm.** `npm install @anvaya/sdk` does not resolve today. Until it
-does, install it from a local build:
-
 ```bash
-git clone https://github.com/siddhashutosh/anvaya.git
-cd anvaya && npm install && npm run build
-
-# then, from your own project
-npm install /path/to/anvaya/packages/sdk
+npm install @anvaya/sdk
 ```
 
-The package is otherwise publish-ready, so the import path below is what it will be either
-way. If you'd rather not build anything, skip the SDK entirely and post OpenTelemetry
-spans to `/v1/ingest` — see the note below the example.
+[![npm](https://img.shields.io/npm/v/@anvaya/sdk)](https://www.npmjs.com/package/@anvaya/sdk)
+— Node.js ≥ 20. Pulls in [`@anvaya/core`](https://www.npmjs.com/package/@anvaya/core), which
+carries the taxonomy and shared types.
+
+You'll also need a collector running to receive the spans — see [Quick start](#quick-start)
+above. Or skip the SDK entirely and post OpenTelemetry spans to `/v1/ingest`; see the note
+below the example.
 
 ### Then, under ten lines
 
