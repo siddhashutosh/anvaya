@@ -66,6 +66,12 @@ Incident #47   RET-002 Retrieval quality collapse
 Needs **Node.js ≥ 20**. No Docker, no external database, no API key.
 
 ```bash
+npx @anvaya/server      # collector + dashboard on :4319
+```
+
+Or from source, which also gets you the seed data:
+
+```bash
 npm install
 npm run build
 npm run seed            # 150 demo traces with injected failures (optional)

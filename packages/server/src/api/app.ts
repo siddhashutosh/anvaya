@@ -19,6 +19,11 @@ function findUiBundle(configured?: string): string | undefined {
   const here = dirname(fileURLToPath(import.meta.url));
   const candidates = [
     configured,
+    // Published package: the UI is copied to dist/ui at pack time, because an
+    // installed @anvaya/server has no sibling ui package to reach into. Checked
+    // before the cwd-relative paths so an installed copy cannot pick up a stale
+    // bundle from whatever directory the process happens to be started in.
+    resolve(here, '../ui'),
     resolve(here, '../../../ui/dist'),
     resolve(process.cwd(), 'packages/ui/dist'),
     resolve(process.cwd(), 'ui'),
