@@ -16,7 +16,7 @@ contract.
 
 ## The failure taxonomy
 
-**56 named failure modes across 8 families**, covering all 14
+**57 named failure modes across 8 families**, covering all 14
 [MAST](https://arxiv.org/abs/2503.13657) modes, all 7
 [Barnett et al.](https://arxiv.org/pdf/2401.05856) RAG failure points, and 6
 [OWASP LLM Top 10 (2025)](https://genai.owasp.org/llm-top-10/) entries.

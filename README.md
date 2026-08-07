@@ -15,7 +15,7 @@ stays a shop window. Run it locally to ingest your own.
 ```
 ┌──────────────┐   spans   ┌────────────────────────────┐        ┌───────────┐
 │  your AI app │──────────▶│  ingest → detect → attribute│───────▶│ dashboard │
-│  + @anvaya/sdk│           │  56 named failure modes    │        │  triage   │
+│  + @anvaya/sdk│           │  57 named failure modes    │        │  triage   │
 └──────────────┘           └────────────────────────────┘        └───────────┘
 ```
 
@@ -43,7 +43,7 @@ happened) and **evaluation** (was the output good). Neither is diagnosis.
 
 Anvaya adds the third thing:
 
-1. **A named, research-grounded failure taxonomy** — 56 modes, not freeform scores.
+1. **A named, research-grounded failure taxonomy** — 57 modes, not freeform scores.
 2. **Detectors that map evidence to taxonomy codes**, cheapest tier first.
 3. **Causal attribution across the span tree** — a bad answer points at the *retrieval
    step that caused it*, not at itself.
@@ -137,7 +137,7 @@ Already emitting OpenTelemetry? Post to `/v1/ingest` with `format: "otel-genai"`
 
 ## The failure taxonomy
 
-**56 modes across 8 families**, covering all 14 [MAST](https://arxiv.org/abs/2503.13657)
+**57 modes across 8 families**, covering all 14 [MAST](https://arxiv.org/abs/2503.13657)
 modes, all 7 [Barnett](https://arxiv.org/pdf/2401.05856) RAG failure points, and 6
 [OWASP LLM Top 10 (2025)](https://genai.owasp.org/llm-top-10/) entries.
 
@@ -190,7 +190,7 @@ cycle is indefensible.
 | **L2** Statistical | PSI / JS drift, z-score, MAD | ~0 | **on** |
 | **L3** Judge | LLM-as-judge | **billed** | **off** |
 
-L0–L2 cover **43 of the 56 modes**. With no API key configured, L3 reports
+L0–L2 cover **43 of the 57 modes**. With no API key configured, L3 reports
 `skipped:unconfigured` — an informational outcome, never an error.
 
 ## Confidence is never hidden
@@ -242,7 +242,7 @@ Dependency direction is acyclic and enforced: `ui → server → core`, `sdk →
 
 ## Design record
 
-The full engineering record — design document, SRS, HLD, LLD, the 56-mode failure
+The full engineering record — design document, SRS, HLD, LLD, the 57-mode failure
 taxonomy and nine ADRs — is maintained but kept out of this repository. Available
 on request.
 

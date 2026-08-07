@@ -1,5 +1,5 @@
 /**
- * The Anvaya failure taxonomy — 56 modes across 8 families.
+ * The Anvaya failure taxonomy — 57 modes across 8 families.
  *
  * This file is DATA, not code (NFR-5.3). It contains no logic, so it can be
  * reviewed by a non-engineer and diffed meaningfully. Lookup and graph queries
@@ -21,7 +21,10 @@
 
 import type { FailureMode } from './types.js';
 
-export const TAXONOMY_VERSION = '1.0.0';
+// 1.1.0 — adds SEC-007 (injection-consequent action). Minor, not patch: a new
+// mode is additive for anyone reading findings, but a consumer that switches
+// exhaustively over codes has a new case, and the version is how they find out.
+export const TAXONOMY_VERSION = '1.1.0';
 
 export const CATALOG: readonly FailureMode[] = Object.freeze([
   // ───────────────────────────── INF · Infrastructure & transport ─────────────────────────────
@@ -797,6 +800,29 @@ export const CATALOG: readonly FailureMode[] = Object.freeze([
       'A guardrail whose verdict is ignored is worse than no guardrail — it produces false assurance. Structurally detectable and worth alerting on.',
     source: { kind: 'standard', ref: 'operational practice; OWASP LLM01 (2025)' },
     causes: ['SEC-005', 'SEC-003'],
+  },
+  {
+    code: 'SEC-007',
+    family: 'SEC',
+    name: 'Injection-consequent action',
+    definition:
+      'Instruction-like content that entered from an untrusted source — a retrieved document or a tool result — demonstrably reached a privileged sink: the arguments of a later tool call, or the final output.',
+    defaultSeverity: 'critical',
+    tier: 'L1',
+    evidenceRequired: [
+      'source span and origin',
+      'sink span and kind',
+      'matched fragment length',
+      'ordering',
+    ],
+    remediation:
+      'This is the mode that says the injection WORKED, as distinct from SEC-001/SEC-002 which say one was attempted. Treat it as an incident, not an alert: identify what the influenced call was permitted to do, and constrain that permission. Content arriving from a retriever or a tool is data, and a model that can be instructed by its own inputs must not hold a capability you would not grant the author of those inputs.',
+    source: {
+      kind: 'standard',
+      ref: 'OWASP LLM01 (2025); OWASP LLM06 (2025)',
+      note: 'the consequence half of indirect injection, observable only across a whole trace',
+    },
+    causes: ['SEC-003', 'SEC-005', 'TOL-005'],
   },
 
   // ─────────────────────────────── ECO · Economics & drift ───────────────────────────────

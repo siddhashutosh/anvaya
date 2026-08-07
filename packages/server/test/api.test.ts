@@ -6,7 +6,7 @@
  * coverage before.
  */
 
-import { createNoopLogger, type SpanRecord } from '@anvaya/core';
+import { createNoopLogger, TAXONOMY_VERSION, type SpanRecord } from '@anvaya/core';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/api/app.js';
@@ -132,7 +132,11 @@ describe('GET /health (FR-6.1)', () => {
     expect(body.status).toBe('ok');
     expect(body.components.storage.ok).toBe(true);
     expect(body.components.detection.detectors).toBeGreaterThan(40);
-    expect(body.taxonomyVersion).toBe('1.0.0');
+    // Compared to the constant, not to a literal. /health exists so an operator
+    // can see which taxonomy a deployment is serving; pinning the string here
+    // means every future mode addition fails a test about health checks, which
+    // teaches people to edit the number without reading why it moved.
+    expect(body.taxonomyVersion).toBe(TAXONOMY_VERSION);
   });
 
   it('surfaces queue and oversize-drop counters', async () => {
@@ -147,7 +151,7 @@ describe('GET /v1/meta', () => {
   it('advertises supported wire formats', async () => {
     const body = (await h.app.inject({ method: 'GET', url: '/v1/meta' })).json();
     expect(body.capabilities.formats).toEqual(['anvaya', 'otel-genai', 'openinference']);
-    expect(body.taxonomySize).toBe(56);
+    expect(body.taxonomySize).toBe(57);
   });
 });
 
@@ -298,7 +302,7 @@ describe('trace, finding and taxonomy endpoints', () => {
 
   it('serves the full taxonomy and a single mode', async () => {
     const all = (await h.app.inject({ method: 'GET', url: '/v1/taxonomy' })).json();
-    expect(all.modes).toHaveLength(56);
+    expect(all.modes).toHaveLength(57);
 
     const one = (await h.app.inject({ method: 'GET', url: '/v1/taxonomy/AGT-003' })).json();
     expect(one.name).toBe('Step repetition');

@@ -103,7 +103,11 @@ export function App() {
         return {
           title: 'Failure taxonomy',
           subtitle:
-            'The 56 named failure modes Anvaya can detect, each with its research source and remediation.',
+            // "named", not "can detect". The catalogue names 57; this build
+            // detects 43 of them. A subtitle that conflates the two overstates
+            // the product by fourteen modes on the very page a reader is
+            // checking coverage against.
+            'The 57 named failure modes in the Anvaya taxonomy, each with its research source and remediation.',
           body: <Taxonomy />,
         };
       default:

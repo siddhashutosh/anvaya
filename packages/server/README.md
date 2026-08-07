@@ -18,7 +18,7 @@ point it at that endpoint.
 Traditional software fails loudly. An AI product's worst failures return **HTTP 200** with
 a confident, well-formatted, wrong answer — no exception, normal latency, valid JSON.
 
-Anvaya names the failure from a **56-mode taxonomy** and attributes it to the span that
+Anvaya names the failure from a **57-mode taxonomy** and attributes it to the span that
 *caused* it, rather than the span where you noticed it:
 
 ```
@@ -40,7 +40,7 @@ You fix one thing instead of twelve.
 | **L2** Statistical | PSI / JS drift, z-score, MAD | ~0 | **on** |
 | **L3** Judge | LLM-as-judge | **billed** | **off** |
 
-**43 of the 56 modes are detected with zero model calls.** L3 is off by default — an API
+**43 of the 57 modes are detected with zero model calls.** L3 is off by default — an API
 key alone is not consent to spend. Without it, L3 reports `skipped:unconfigured`, an
 informational outcome and never an error.
 

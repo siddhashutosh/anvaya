@@ -27,8 +27,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const DOC_PATH = resolve(here, '../../../docs/04-failure-taxonomy.md');
 
 describe('taxonomy catalog', () => {
-  it('has 56 modes across 8 families', () => {
-    expect(CATALOG).toHaveLength(56);
+  it('has 57 modes across 8 families', () => {
+    expect(CATALOG).toHaveLength(57);
     expect(TAXONOMY_FAMILIES).toHaveLength(8);
   });
 
